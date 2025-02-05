@@ -14,7 +14,6 @@ const pool = new Pool({
 });
 
 
-pool.query(`DROP TABLE INVENTARIO`)
 // Create table if it doesn't exist
 pool.query(`CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
