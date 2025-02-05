@@ -13,36 +13,50 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+// Debug database connection
+pool.connect()
+    .then(() => console.log('✅ Successfully connected to PostgreSQL'))
+    .catch(err => {
+        console.error('❌ Database connection error:', err.message);
+        process.exit(1);
+    });
 
-// Create table if it doesn't exist
-pool.query(`CREATE TABLE IF NOT EXISTS inventory (
-    id SERIAL PRIMARY KEY,
-    code TEXT UNIQUE,
-    quantity INTEGER
-)`);
+// 📌 Run SQL queries from the frontend securely
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";  // Change this!
+app.post('/admin/query', async (req, res) => {
+    const { password, query } = req.body;
 
-app.use(express.static('public'));
+    if (password !== ADMIN_PASSWORD) {
+        return res.status(403).json({ error: "Unauthorized" });
+    }
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
-});
-
-// Add or update product quantity
-app.post('/add', async (req, res) => {
     try {
-        const { code, quantity } = req.body;
-        await pool.query(
-            `INSERT INTO inventory (code, quantity) VALUES ($1, $2)
-             ON CONFLICT (code) DO UPDATE SET quantity = inventory.quantity + $2`,
-            [code, quantity]
-        );
-        res.json({ message: 'Inventory updated' });
+        const result = await pool.query(query);
+        res.json({ success: true, result: result.rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Register a sale
+// ✅ Inventory Routes
+app.post('/add', async (req, res) => {
+    try {
+        let { code, name, size, quantity } = req.body;
+        if (!code) code = require('crypto').randomBytes(4).toString('hex');
+
+        await pool.query(
+            `INSERT INTO inventory (code, name, size, quantity) 
+             VALUES ($1, $2, $3, $4) 
+             ON CONFLICT (code) DO UPDATE SET quantity = inventory.quantity + $4`,
+            [code, name, size, quantity]
+        );
+
+        res.json({ message: 'Product added successfully', code });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/sell', async (req, res) => {
     try {
         const { code } = req.body;
@@ -53,7 +67,6 @@ app.post('/sell', async (req, res) => {
     }
 });
 
-// Get inventory data
 app.get('/inventory', async (req, res) => {
     try {
         const result = await pool.query(`SELECT * FROM inventory`);
@@ -63,5 +76,29 @@ app.get('/inventory', async (req, res) => {
     }
 });
 
+// Barcode Generator
+const bwipjs = require('bwip-js');
+app.get('/barcode/:code', async (req, res) => {
+    try {
+        const { code } = req.params;
+        bwipjs.toBuffer({
+            bcid: 'code128',
+            text: code,
+            scale: 3,
+            height: 10,
+            includetext: true
+        }, (err, png) => {
+            if (err) {
+                res.status(500).json({ error: "Barcode generation failed" });
+            } else {
+                res.set('Content-Type', 'image/png');
+                res.send(png);
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

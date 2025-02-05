@@ -3,26 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Scanner</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold text-center mb-4">📦 Inventory Scanner</h1>
-
-        <div id="reader" class="mx-auto w-80 border border-gray-300 shadow-lg rounded-md"></div>
-
-        <p class="mt-4 text-center text-lg">Scanned Code: <span id="result" class="font-bold text-blue-600"></span></p>
-
-        <div class="mt-4 flex justify-center">
-            <button onclick="registerSale()" 
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Register Sale
-            </button>
-        </div>
-    </div>
-
+    <title>Inventory Scanner & Admin</title>
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+    <h1 class="text-3xl font-bold mb-4">📦 Inventory Scanner</h1>
+
+    <div id="reader" class="w-80 border border-gray-300 shadow-lg rounded-md"></div>
+
+    <p class="mt-4 text-lg">Scanned Code: <span id="result" class="font-bold text-blue-600"></span></p>
+
+    <button onclick="registerSale()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">
+        Register Sale
+    </button>
+
+    <h2 class="text-2xl font-bold mt-8">🔧 Admin Panel - Run SQL</h2>
+    <input type="password" id="adminPassword" placeholder="Enter Admin Password" class="border p-2 mt-2">
+    <textarea id="queryInput" placeholder="Enter SQL Query" class="border p-2 mt-2 w-80 h-24"></textarea>
+    <button onclick="runQuery()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2">
+        Run Query
+    </button>
+
+    <h3 class="text-xl font-bold mt-4">Query Result:</h3>
+    <pre id="queryResult" class="border p-2 mt-2 w-80 bg-gray-200"></pre>
+
     <script>
         function onScanSuccess(decodedText) {
             document.getElementById('result').innerText = decodedText;
@@ -42,6 +47,22 @@
             })
             .then(res => res.json())
             .then(data => alert(data.message))
+            .catch(err => console.error(err));
+        }
+
+        function runQuery() {
+            const password = document.getElementById('adminPassword').value;
+            const query = document.getElementById('queryInput').value;
+
+            fetch("https://inventario-deportivos-production.up.railway.app/admin/query", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password, query })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('queryResult').innerText = JSON.stringify(data, null, 2);
+            })
             .catch(err => console.error(err));
         }
     </script>
