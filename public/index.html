@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Scanner</title>
+</head>
+<body>
+    <h1>Scan Product Code</h1>
+    <div id="reader" style="width: 300px;"></div>
+    <p>Scanned Code: <span id="result"></span></p>
+    <button onclick="registerSale()">Register Sale</button>
+
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <script>
+        function onScanSuccess(decodedText) {
+            document.getElementById('result').innerText = decodedText;
+            localStorage.setItem('code', decodedText);
+        }
+
+        new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }).render(onScanSuccess);
+
+        function registerSale() {
+            const code = localStorage.getItem('code');
+            if (!code) return alert("Please scan a code first.");
+
+            fetch("inventario-deportivos-production.up.railway.app/sell", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code })
+            })
+            .then(res => res.json())
+            .then(data => alert(data.message))
+            .catch(err => console.error(err));
+        }
+    </script>
+</body>
+</html>

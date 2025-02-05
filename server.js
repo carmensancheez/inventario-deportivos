@@ -13,47 +13,54 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Crear tabla si no existe
-pool.query(`CREATE TABLE IF NOT EXISTS inventario (
+// Create table if it doesn't exist
+pool.query(`CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
-    codigo TEXT UNIQUE,
-    cantidad INTEGER
+    code TEXT UNIQUE,
+    quantity INTEGER
 )`);
 
-// Agregar producto o actualizar cantidad
-app.post('/agregar', async (req, res) => {
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
+});
+
+// Add or update product quantity
+app.post('/add', async (req, res) => {
     try {
-        const { codigo, cantidad } = req.body;
+        const { code, quantity } = req.body;
         await pool.query(
-            `INSERT INTO inventario (codigo, cantidad) VALUES ($1, $2)
-             ON CONFLICT (codigo) DO UPDATE SET cantidad = inventario.cantidad + $2`,
-            [codigo, cantidad]
+            `INSERT INTO inventory (code, quantity) VALUES ($1, $2)
+             ON CONFLICT (code) DO UPDATE SET quantity = inventory.quantity + $2`,
+            [code, quantity]
         );
-        res.json({ mensaje: 'Inventario actualizado' });
+        res.json({ message: 'Inventory updated' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Registrar venta
-app.post('/vender', async (req, res) => {
+// Register a sale
+app.post('/sell', async (req, res) => {
     try {
-        const { codigo } = req.body;
-        await pool.query(`UPDATE inventario SET cantidad = cantidad - 1 WHERE codigo = $1`, [codigo]);
-        res.json({ mensaje: 'Venta registrada' });
+        const { code } = req.body;
+        await pool.query(`UPDATE inventory SET quantity = quantity - 1 WHERE code = $1`, [code]);
+        res.json({ message: 'Sale registered' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Obtener inventario
-app.get('/inventario', async (req, res) => {
+// Get inventory data
+app.get('/inventory', async (req, res) => {
     try {
-        const result = await pool.query(`SELECT * FROM inventario`);
+        const result = await pool.query(`SELECT * FROM inventory`);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.listen(3000, () => console.log('Servidor corriendo en puerto 3000'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
