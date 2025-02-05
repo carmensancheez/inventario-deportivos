@@ -13,6 +13,8 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+
+pool.query(`DROP TABLE INVENTARIO`)
 // Create table if it doesn't exist
 pool.query(`CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
